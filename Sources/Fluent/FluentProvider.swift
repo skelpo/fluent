@@ -20,13 +20,9 @@ public final class FluentProvider: Provider {
         app.register(DatabaseSessions.self) { app in
             return .init(database: app.make())
         }
-
-        app.register(Database.self) { c in
-            return c.make(Databases.self).default()
-        }
         
         app.register(singleton: Databases.self, boot: { app in
-            return .init()
+            return Databases(threadPool: app.make(), on: app.make())
         }, shutdown: { databases in
             databases.shutdown()
         })
@@ -79,30 +75,35 @@ extension Request {
     
     public func db(_ id: DatabaseID) -> Database {
         return self.application.make(Databases.self)
-            .database(id)!
+            .database(id, logger: self.logger, on: self.eventLoop)!
             .with(self)
     }
 }
 
 extension Database {
     public func with(_ request: Request) -> Database {
-        return RequestSpecificDatabase(request: request, database: self)
+        return RequestSpecificDatabase(request: request, database: self, context: self.context)
     }
 }
 
 private struct RequestSpecificDatabase: Database {
     let request: Request
     let database: Database
-    
-    var driver: DatabaseDriver {
-        return self.database.driver
-    }
+    let context: DatabaseContext
     
     var logger: Logger {
         return self.request.logger
     }
-    
-    var eventLoopPreference: EventLoopPreference {
-        return .delegate(on: self.request.eventLoop)
+
+    func execute(query: DatabaseQuery, onRow row: @escaping (DatabaseRow) -> ()) -> EventLoopFuture<Void> {
+        self.database.execute(query: query, onRow: row)
+    }
+
+    func execute(schema: DatabaseSchema) -> EventLoopFuture<Void> {
+        self.database.execute(schema: schema)
+    }
+
+    func withConnection<T>(_ closure: @escaping (Database) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        self.database.withConnection(closure)
     }
 }
