@@ -11,6 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/skelpo/fluent-kit.git", from: "1.0.0-beta.2.2"),
+        .package(url: "https://github.com/skelpo/async-kit.git", from: "1.0.0-beta.1.1"),
         .package(url: "https://github.com/vapor/vapor.git", from: "4.0.0-beta"),
     ],
     targets: [

@@ -27,10 +27,6 @@ public final class FluentProvider: Provider {
             databases.shutdown()
         })
         
-        app.register(ConnectionPoolConfiguration.self) { app in
-            return .init()
-        }
-        
         app.register(extension: CommandConfiguration.self) { commands, c in
             commands.use(c.make(MigrateCommand.self), as: "migrate")
         }
